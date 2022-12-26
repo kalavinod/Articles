@@ -4,9 +4,9 @@ pipeline {
     choice (name: 'chooseNode', choices: ['Green', 'Blue'], description: 'Choose which Environment to Deploy: ')
   }
   environment {
-    listenerARN = 'arn:aws:elasticloadbalancing:ap-south-1:745825563476:listener/app/blue-green/a201cfaa8896efbc/42dd93cfc6ceb733'
-    blueARN = 'arn:aws:elasticloadbalancing:ap-south-1:745825563476:targetgroup/blue/2e98c824a11a99c8'
-    greenARN = 'arn:aws:elasticloadbalancing:ap-south-1:745825563476:targetgroup/Green/1aa96e9ddb6bd5c5'
+    listenerARN = 'arn:aws:elasticloadbalancing:us-east-1:007591908515:listener/app/aloadbalancer/ff2b0b45934a7313/3a52d6c18097292c'
+    blueARN = 'arn:aws:elasticloadbalancing:us-east-1:007591908515:targetgroup/bluetarget/eaea52c5837220aa'
+    greenARN = 'arn:aws:elasticloadbalancing:us-east-1:007591908515:targetgroup/green/4b186d98078d0164'
   }
   stages {
     stage('Deployment Started') {
@@ -25,8 +25,8 @@ pipeline {
             }
             stage('Deploying to Green') {
               steps {
-                sh '''scp -r index.html ec2-user@3.6.126.50:/usr/share/nginx/html/
-                ssh -t ec2-user@3.6.126.50 -p 22 << EOF 
+                sh '''scp -r index.html ec2-user@34.229.80.2:/usr/share/nginx/html/
+                ssh -t ec2-user@34.229.80.2 -p 22 << EOF 
                 sudo service nginx restart
                 '''
               }
@@ -34,14 +34,14 @@ pipeline {
             stage('Validate and Add Green for testing') {
               steps {
                 sh """
-                if [ "\$(curl -o /dev/null --silent --head --write-out '%{http_code}' http://3.6.126.50/)" -eq 200 ]
+                if [ "\$(curl -o /dev/null --silent --head --write-out '%{http_code}' http://34.229.80.2/)" -eq 200 ]
                 then
                     echo "** BUILD IS SUCCESSFUL **"
-                    curl -I http://3.6.126.50/
+                    curl -I http://34.229.80.2/
                     aws elbv2 modify-listener --listener-arn ${listenerARN} --default-actions '[{"Type": "forward","Order": 1,"ForwardConfig": {"TargetGroups": [{"TargetGroupArn": "${greenARN}", "Weight": 0 },{"TargetGroupArn": "${blueARN}", "Weight": 1 }],"TargetGroupStickinessConfig": {"Enabled": true,"DurationSeconds": 1}}}]'
                 else
 	                echo "** BUILD IS FAILED ** Health check returned non 200 status code"
-                    curl -I http://3.6.126.50/
+                    curl -I http://34.229.80.2/
                 exit 2
                 fi
                 """
@@ -63,8 +63,8 @@ pipeline {
             }
             stage('Deploying to Blue') {
               steps {
-                sh '''scp -r index.html ec2-user@3.110.209.118:/usr/share/nginx/html/
-                ssh -t ec2-user@3.110.209.118 -p 22 << EOF 
+                sh '''scp -r index.html ec2-user@54.84.175.91:/usr/share/nginx/html/
+                ssh -t ec2-user@54.84.175.91 -p 22 << EOF 
                 sudo service nginx restart
                 '''
               }
@@ -72,14 +72,14 @@ pipeline {
             stage('Validate Blue and added to TG') {
               steps {
                 sh """
-                if [ "\$(curl -o /dev/null --silent --head --write-out '%{http_code}' http://3.110.209.118/)" -eq 200 ]
+                if [ "\$(curl -o /dev/null --silent --head --write-out '%{http_code}' http://54.84.175.91/)" -eq 200 ]
                 then
                     echo "** BUILD IS SUCCESSFUL **"
-                    curl -I http://3.110.209.118/
+                    curl -I http://54.84.175.91/
                     aws elbv2 modify-listener --listener-arn ${listenerARN} --default-actions '[{"Type": "forward","Order": 1,"ForwardConfig": {"TargetGroups": [{"TargetGroupArn": "${greenARN}", "Weight": 1 },{"TargetGroupArn": "${blueARN}", "Weight": 1 }],"TargetGroupStickinessConfig": {"Enabled": true,"DurationSeconds": 1}}}]'
                 else
 	                echo "** BUILD IS FAILED ** Health check returned non 200 status code"
-                    curl -I http://3.110.209.118/
+                    curl -I http://54.84.175.91/
                 exit 2
                 fi
                 """
